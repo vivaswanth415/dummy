@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="34d0918b-036d-4768-8f5d-e265355dd848" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="29d36e0e-8b27-495a-a9ce-906bb4d3c9e0" >
+		<salesforce:basic-connection username="kvivaswanth@gmail.com" password="8328271978@Gana" securityToken="BW1c4F59e4hQoZBMERnJCwar" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="8ac5912b-a9c1-488a-972d-195575407f1a" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="8328271978@Gana" database="orcl_db" />
+	</db:config>
+	<flow name="dummyFlow" doc:id="452cf56e-fb9d-436f-8ebb-fa4022b5ede9" >
+		<http:listener doc:name="Listener" doc:id="9be42c63-9875-441d-b534-cbba5839ad04" config-ref="HTTP_Listener_config" path="/{accno}"/>
+		<salesforce:query doc:name="Query" doc:id="ae3656f3-bdad-42b8-882c-e4be8806ff8c" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT FIELDS(ALL) FROM CUSTOMER__C  WHERE ACC_NO__C = :accno LIMIT 10]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"accno" : attributes.uriParams.accno
+}]]]></salesforce:parameters>
+		
+</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="d7c4a8d8-d141-4777-903a-85169bad8df1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a1f0c8c7-aaed-4f0f-b34b-25432c47a92a" message='#[payload]'/>
+<choice doc:name="Choice" doc:id="b767b865-378b-42ae-9c99-af02694ebe95" >
+			<when expression='#[if (payload[0].cun__c == "pk" or payload[0].cun__c == "bd")&#10;"false"&#10;else &#10;"true"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="cf2a404f-84df-48de-aef1-8b998465c722" message="sucess"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="3220a2e7-ad9e-4142-9d6c-6f1630f1aae4" message="error occured due to other countries"/>
+			</otherwise>
+		</choice>
+				<db:select doc:name="Select" doc:id="bf3535d1-3e3c-49ab-b0b8-e7d23579637f" config-ref="Database_Config" target="db">
+			<db:sql ><![CDATA[select currency from currency]]></db:sql>
+			<db:parameter-types />
+		</db:select>
+<!-- [STUDIO:"Logger"]		<logger level="INFO" doc:name="Logger" doc:id="87eb4d52-6070-4440-9ee5-fcce46c75d75" message="#[payload&#93;"/> [STUDIO] -->
+<!-- [STUDIO:"Transform Message"]		<ee:transform doc:name="Transform Message" doc:id="f7fea5d1-54a4-4164-83f5-1b88132a8431" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+&#45;&#45;-
+payload&#93;&#93;></ee:set-payload>
+			</ee:message>
+		</ee:transform> [STUDIO] -->
+	</flow>
+</mule>
